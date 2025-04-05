@@ -1,20 +1,21 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "description": "",
+  "description": "backend for the faculty feedback system project",
   "main": "index.js",
   "type": "module",
   "scripts": {
     "dev": "nodemon src/index.js"
   },
   "keywords": [],
-  "author": "",
+  "author": "Aviral",
   "license": "ISC",
   "devDependencies": {
     "nodemon": "^3.1.9",
     "prettier": "^3.5.3"
   },
   "dependencies": {
+    "bcrypt": "^5.1.1",
     "cloudinary": "^2.6.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",

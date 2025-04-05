@@ -109,4 +109,58 @@ const logoutAdmin = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, {}, "Admin logged Out"));
 });
 
-export { registerAdmin, loginAdmin, logoutAdmin };
+const updatePassword = asyncHandler(async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+  if (!currentPassword || !newPassword) {
+    throw new ApiError(400, "Please provide current and new password");
+  }
+  const admin = await Admin.findById(req.admin._id);
+  if (!admin) {
+    throw new ApiError(400, "Admin not found");
+  }
+  const isPasswordValid = await admin.isPasswordCorrect(currentPassword);
+  if (!isPasswordValid) {
+    throw new ApiError(400, "Invalid current password");
+  }
+  admin.password = newPassword;
+  await admin.save({ validateBeforeSave: false });
+  const updatedAdmin = await Admin.findById(admin._id).select("-password");
+  if (!updatedAdmin) {
+    throw new ApiError(400, "Admin not updated");
+  }
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Admin password updated successfully"));
+});
+
+const getAllAdmins = asyncHandler(async (req, res) => {
+  const admins = await Admin.find().select("-password -refreshToken");
+  if (!admins || admins.length === 0) {
+    throw new ApiError(400, "No admins found");
+  }
+  return res
+    .status(200)
+    .json(new ApiResponse(200, admins, "Admins fetched successfully"));
+});
+
+const deleteLoggedInAdmin = asyncHandler(async (req, res) => {
+  const adminId = req.admin._id;
+  const deletedAdmin = await Admin.findByIdAndDelete(adminId);
+  if (!deletedAdmin) {
+    throw new ApiError(400, "Admin not deleted");
+  }
+  return res
+    .status(200)
+    .clearCookie("accessToken")
+    .clearCookie("refreshToken")
+    .json(new ApiResponse(200, {}, "Admin deleted successfully"));
+});
+
+export {
+  registerAdmin,
+  loginAdmin,
+  logoutAdmin,
+  updatePassword,
+  getAllAdmins,
+  deleteLoggedInAdmin,
+};

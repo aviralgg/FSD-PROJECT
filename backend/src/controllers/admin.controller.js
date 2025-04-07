@@ -156,6 +156,8 @@ const deleteLoggedInAdmin = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, {}, "Admin deleted successfully"));
 });
 
+
+
 export {
   registerAdmin,
   loginAdmin,

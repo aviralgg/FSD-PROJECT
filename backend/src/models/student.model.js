@@ -1,10 +1,12 @@
 import mongoose from "mongoose";
+import jwt from "jsonwebtoken";
 
 const studentSchema = new mongoose.Schema(
   {
     admissionNo: {
       type: String,
       required: true,
+      lowercase: true,
       unique: true,
     },
     rollNo: {
@@ -22,13 +24,11 @@ const studentSchema = new mongoose.Schema(
     },
     year: {
       type: Number,
-      enum: [1, 2, 3, 4],
       required: true,
     },
-    attempted: {
+    semester: {
       type: Number,
-      enum: [0, 1],
-      default: 0,
+      required: true,
     },
     refreshToken: {
       type: String,

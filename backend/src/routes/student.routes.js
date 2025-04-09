@@ -1,9 +1,10 @@
 import { Router } from "express";
+import { studentLogin, studentLogout } from "../controllers/student.controller.js";
+import { verifyStudent } from "../middlewares/studentAuth.middleware.js";
 
 const router = Router();
 
-router.route("/").get((req,res)=>{
-    res.send("<h1>hello</h1>");
-})
+router.route("/studentLogin").post(studentLogin);
+router.route("/studentLogout").post(verifyStudent, studentLogout);
 
 export default router;

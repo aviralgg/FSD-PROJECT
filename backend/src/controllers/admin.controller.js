@@ -156,7 +156,60 @@ const deleteLoggedInAdmin = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, {}, "Admin deleted successfully"));
 });
 
+const addStudent = asyncHandler(async (req, res) => {
+  const { admissionNo, rollNo, department, section, year, semester } = req.body;
+  if (
+    !admissionNo ||
+    !rollNo ||
+    !department ||
+    !section ||
+    !year ||
+    !semester
+  ) {
+    throw new ApiError(400, "All fields are required");
+  }
+  const existedStudent = await Student.findOne({ admissionNo });
+  if (existedStudent) {
+    throw new ApiError(
+      400,
+      "Student with same admission number already exists"
+    );
+  }
+  const student = await Student.create({
+    admissionNo,
+    rollNo,
+    department,
+    section,
+    year,
+    semester,
+  });
+  const createdStudent = await Student.findById(student._id);
+  if (!createdStudent) {
+    throw new ApiError(400, "Student not created");
+  }
+  return res
+    .status(200)
+    .json(new ApiResponse(200, createdStudent, "Student created successfully"));
+});
 
+const deleteStudent = asyncHandler(async (req, res) => {
+  const { admissionNo } = req.body;
+  if (!admissionNo) {
+    throw new ApiError(400, "Admission number is required");
+  }
+  const admissNo = admissionNo.toLowerCase();
+  const student = await Student.findOneAndDelete({
+    admissionNo: admissNo,
+  });
+  if (!student) {
+    throw new ApiError(400, "Student not found");
+  }
+  return res
+    .status(200)
+    .clearCookie("accessToken")
+    .clearCookie("refreshToken")
+    .json(new ApiResponse(200, {}, "Student deleted successfully"));
+});
 
 export {
   registerAdmin,
@@ -165,4 +218,6 @@ export {
   updatePassword,
   getAllAdmins,
   deleteLoggedInAdmin,
+  addStudent,
+  deleteStudent
 };

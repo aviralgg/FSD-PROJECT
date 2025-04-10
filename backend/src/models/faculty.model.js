@@ -6,6 +6,7 @@ const facultySchema = new mongoose.Schema(
       type: String,
       required: true,
       unique: true,
+      lowercase: true,
     },
     name: {
       type: String,

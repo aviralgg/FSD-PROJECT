@@ -6,6 +6,21 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
+import {
+  uploadOnCloudinary,
+  deleteFromCloudinary,
+} from "../utils/cloudinary.js";
+
+const deleteImages = async (imageUrl) => {
+  try {
+    const res = await deleteFromCloudinary(imageUrl);
+    if (!res) {
+      throw new ApiError(400, "error in deletion function");
+    }
+  } catch (error) {
+    throw new ApiError(400, "Error while deleting images from cloudinary");
+  }
+};
 
 const generateAccessAndRefreshTokens = async (adminId) => {
   try {
@@ -212,6 +227,93 @@ const deleteStudent = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, {}, "Student deleted successfully"));
 });
 
+const addFacultyInfo = asyncHandler(async (req, res) => {
+  const { emp_id, name } = req.body;
+  if (!emp_id || !name) {
+    throw new ApiError(400, "All fields are required");
+  }
+  const empId = emp_id.toLowerCase();
+  const existedFaculty = await Faculty.findOne({ emp_id: empId });
+  if (existedFaculty) {
+    throw new ApiError(400, "Faculty with same id already exists");
+  }
+
+  const imageLocalPath = req.file?.path;
+  if (!imageLocalPath) {
+    throw new ApiError(400, "Image file is required");
+  }
+
+  const image = await uploadOnCloudinary(imageLocalPath);
+  if (!image) {
+    throw new ApiError(400, "Image upload failed");
+  }
+
+  const faculty = await Faculty.create({
+    emp_id: empId,
+    name,
+    image: image.url,
+  });
+  const createdFaculty = await Faculty.findById(faculty._id);
+  if (!createdFaculty) {
+    throw new ApiError(400, "Faculty not created");
+  }
+  return res
+    .status(200)
+    .json(new ApiResponse(200, createdFaculty, "Faculty created successfully"));
+});
+
+const addTeachingInfo = asyncHandler(async (req, res) => {
+  const { emp_id } = req.params;
+  const newTeach = req.body.teaches;
+  if (!emp_id) {
+    throw new ApiError(400, "Employee id is required");
+  }
+  if (
+    !newTeach ||
+    typeof newTeach !== "object" ||
+    Array.isArray(newTeach) ||
+    Object.keys(newTeach).length !== 6
+  ) {
+    throw new ApiError(400, "Teaching information is required");
+  }
+  const empId = emp_id.toLowerCase();
+  const faculty = await Faculty.findOneAndUpdate(
+    { emp_id: empId },
+    {
+      $push: {
+        teaches: newTeach,
+      },
+    },
+    { new: true }
+  );
+  if (!faculty) {
+    throw new ApiError(404, "Faculty not found");
+  }
+  return res
+    .status(200)
+    .json(new ApiResponse(200, faculty, "Faculty teaches array updated"));
+});
+
+const deleteFaculty = asyncHandler(async (req, res) => {
+  const { emp_id } = req.body;
+  if (!emp_id) {
+    throw new ApiError(400, "Employee id is required");
+  }
+  const empId = emp_id.toLowerCase();
+  const faculty = await Faculty.findOne({ emp_id: empId });
+  if (!faculty) {
+    throw new ApiError(404, "Faculty not found");
+  }
+  await deleteImages(faculty.image);
+  const deletedFaculty = await faculty.deleteOne();
+  if(!deletedFaculty){
+    throw new ApiError(400, "Faculty not deleted");
+  }
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Faculty deleted successfully"));
+});
+
 export {
   registerAdmin,
   loginAdmin,
@@ -221,4 +323,7 @@ export {
   deleteLoggedInAdmin,
   addStudent,
   deleteStudent,
+  addFacultyInfo,
+  addTeachingInfo,
+  deleteFaculty,
 };

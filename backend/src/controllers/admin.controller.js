@@ -4,8 +4,6 @@ import { Faculty } from "../models/faculty.model.js";
 import { Student } from "../models/student.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
-import jwt from "jsonwebtoken";
-import mongoose from "mongoose";
 import {
   uploadOnCloudinary,
   deleteFromCloudinary,
@@ -306,13 +304,15 @@ const deleteFaculty = asyncHandler(async (req, res) => {
   }
   await deleteImages(faculty.image);
   const deletedFaculty = await faculty.deleteOne();
-  if(!deletedFaculty){
+  if (!deletedFaculty) {
     throw new ApiError(400, "Faculty not deleted");
   }
   return res
     .status(200)
     .json(new ApiResponse(200, {}, "Faculty deleted successfully"));
 });
+
+
 
 export {
   registerAdmin,

@@ -8,6 +8,7 @@ import {
   uploadOnCloudinary,
   deleteFromCloudinary,
 } from "../utils/cloudinary.js";
+import { Feedback } from "../models/feedback.model.js";
 
 const deleteImages = async (imageUrl) => {
   try {
@@ -312,6 +313,45 @@ const deleteFaculty = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, {}, "Faculty deleted successfully"));
 });
 
+const setAttemptedZero = asyncHandler(async (req, res) => {
+  const feedbacks = await Feedback.find({ attempted: true });
+  if (!feedbacks || feedbacks.length === 0) {
+    throw new ApiError(404, "No attempted feedbacks found");
+  }
+  for (const feedback of feedbacks) {
+    feedback.attempted = false;
+    feedback.questions = feedback.questions.map((q) => ({
+      ...q,
+      score: 0,
+    }));
+    await feedback.save();
+  }
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "All attempted Feedbacks set to zero"));
+});
+
+const getAllFaculties = asyncHandler(async (req, res) => {
+  const { department, section, year, semester } = req.query;
+  const match = {};
+  if (department) match.department = department;
+  if (section) match.section = section;
+  if (year) match.year = year;
+  if (semester) match.semester = semester;
+
+  const filter = {};
+
+  if (Object.keys(match).length > 0) {
+    filter.teaches = { $elemMatch: match };
+  }
+  const faculties = await Faculty.find(filter);
+  if (!faculties || faculties.length === 0) {
+    throw new ApiError(404, "No faculties found");
+  }
+  return res
+    .status(200)
+    .json(new ApiResponse(200, faculties, "Faculties fetched successfully"));
+});
 
 
 export {
@@ -326,4 +366,6 @@ export {
   addFacultyInfo,
   addTeachingInfo,
   deleteFaculty,
+  setAttemptedZero,
+  getAllFaculties,
 };

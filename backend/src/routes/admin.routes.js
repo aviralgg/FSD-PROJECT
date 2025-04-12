@@ -7,9 +7,11 @@ import {
   deleteLoggedInAdmin,
   deleteStudent,
   getAllAdmins,
+  getAllFaculties,
   loginAdmin,
   logoutAdmin,
   registerAdmin,
+  setAttemptedZero,
   updatePassword,
 } from "../controllers/admin.controller.js";
 import { verifyAdmin } from "../middlewares/adminAuth.middleware.js";
@@ -33,5 +35,7 @@ router
   .post(verifyAdmin, upload.single("image"), addFacultyInfo);
 router.route("/:emp_id/teaches").patch(verifyAdmin, addTeachingInfo);
 router.route("/deleteFaculty").delete(verifyAdmin, deleteFaculty);
+router.route("/setAttemptedZero").patch(verifyAdmin, setAttemptedZero);
+router.route("/getAllFaculties").get(verifyAdmin, getAllFaculties);
 
 export default router;

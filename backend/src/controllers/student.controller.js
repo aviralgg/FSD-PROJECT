@@ -23,53 +23,61 @@ const generateAccessAndRefreshTokens = async (studentId) => {
 };
 
 const studentLogin = asyncHandler(async (req, res) => {
-  const { admissionNo, rollNo } = req.body;
-  if (!admissionNo || !rollNo) {
-    throw new ApiError(400, "All fields are required");
+  try {
+    const { admissionNo, rollNo } = req.body;
+    if (!admissionNo || !rollNo) {
+      throw new ApiError(400, "All fields are required");
+    }
+    const admissNo = admissionNo.toLowerCase();
+    const student = await Student.findOne({ admissionNo: admissNo });
+    if (!student) {
+      throw new ApiError(404, "Student not found");
+    }
+    const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(
+      student._id
+    );
+    const loggedInStudent = await Student.findById(student._id).select(
+      "-refreshToken"
+    );
+    const options = {
+      httpOnly: true,
+      secure: true,
+    };
+    return res
+      .status(200)
+      .cookie("accessToken", accessToken, options)
+      .cookie("refreshToken", refreshToken, options)
+      .json(new ApiResponse(200, loggedInStudent, "Student login successful"));
+  } catch (error) {
+    throw new ApiError(500, error.message || "Internal server error");
   }
-  const admissNo = admissionNo.toLowerCase();
-  const student = await Student.findOne({ admissionNo: admissNo });
-  if (!student) {
-    throw new ApiError(404, "Student not found");
-  }
-  const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(
-    student._id
-  );
-  const loggedInStudent = await Student.findById(student._id).select(
-    "-refreshToken"
-  );
-  const options = {
-    httpOnly: true,
-    secure: true,
-  };
-  return res
-    .status(200)
-    .cookie("accessToken", accessToken, options)
-    .cookie("refreshToken", refreshToken, options)
-    .json(new ApiResponse(200, loggedInStudent, "Student login successful"));
 });
 
 const studentLogout = asyncHandler(async (req, res) => {
-  await Student.findByIdAndUpdate(
-    req.student._id,
-    {
-      $unset: {
-        refreshToken: 1,
+  try {
+    await Student.findByIdAndUpdate(
+      req.student._id,
+      {
+        $unset: {
+          refreshToken: 1,
+        },
       },
-    },
-    {
-      new: true,
-    }
-  );
-  const options = {
-    httpOnly: true,
-    secure: true,
-  };
-  return res
-    .status(200)
-    .clearCookie("accessToken", options)
-    .clearCookie("refreshToken", options)
-    .json(new ApiResponse(200, {}, "Student logout successful"));
+      {
+        new: true,
+      }
+    );
+    const options = {
+      httpOnly: true,
+      secure: true,
+    };
+    return res
+      .status(200)
+      .clearCookie("accessToken", options)
+      .clearCookie("refreshToken", options)
+      .json(new ApiResponse(200, {}, "Student logout successful"));
+  } catch (error) {
+    throw new ApiError(500, error.message || "Internal server error");
+  }
 });
 
 const getYourFaculty = asyncHandler(async (req, res) => {
@@ -152,51 +160,59 @@ const getYourFaculty = asyncHandler(async (req, res) => {
 });
 
 const openFeedback = asyncHandler(async (req, res) => {
-  const feedbackId = req.params.id;
-  const feedback = await Feedback.findById(feedbackId);
-  if (!feedback) {
-    throw new ApiError(404, "Feedback not found");
+  try {
+    const feedbackId = req.params.id;
+    const feedback = await Feedback.findById(feedbackId);
+    if (!feedback) {
+      throw new ApiError(404, "Feedback not found");
+    }
+    if (feedback.attempted) {
+      throw new ApiError(400, "Feedback already attempted");
+    }
+    res
+      .status(200)
+      .json(new ApiResponse(200, feedback, "Feedback found successfully"));
+  } catch (error) {
+    throw new ApiError(500, error.message || "Internal server error");
   }
-  if (feedback.attempted) {
-    throw new ApiError(400, "Feedback already attempted");
-  }
-  res
-    .status(200)
-    .json(new ApiResponse(200, feedback, "Feedback found successfully"));
 });
 
 const submitFeedback = asyncHandler(async (req, res) => {
-  const feedbackId = req.params.id;
-  const { questions } = req.body;
-  const feedback = await Feedback.findById(feedbackId);
-  if (!feedback) {
-    throw new ApiError(404, "Feedback not found");
+  try {
+    const feedbackId = req.params.id;
+    const { questions } = req.body;
+    const feedback = await Feedback.findById(feedbackId);
+    if (!feedback) {
+      throw new ApiError(404, "Feedback not found");
+    }
+    if (feedback.attempted) {
+      throw new ApiError(400, "Feedback already submitted");
+    }
+    if (
+      !Array.isArray(questions) ||
+      questions.length !== feedback.questions.length ||
+      questions.some(
+        (q) =>
+          typeof q.score !== "number" ||
+          q.score < 1 ||
+          q.score > 5 ||
+          typeof q.question !== "string"
+      )
+    ) {
+      throw new ApiError(
+        400,
+        "Please provide valid scores (1-5) for all questions"
+      );
+    }
+    feedback.questions = questions;
+    feedback.attempted = true;
+    await feedback.save();
+    res
+      .status(200)
+      .json(new ApiResponse(200, feedback, "Feedback submitted successfully"));
+  } catch (error) {
+    throw new ApiError(500, error.message || "Internal server error");
   }
-  if (feedback.attempted) {
-    throw new ApiError(400, "Feedback already submitted");
-  }
-  if (
-    !Array.isArray(questions) ||
-    questions.length !== feedback.questions.length ||
-    questions.some(
-      (q) =>
-        typeof q.score !== "number" ||
-        q.score < 1 ||
-        q.score > 5 ||
-        typeof q.question !== "string"
-    )
-  ) {
-    throw new ApiError(
-      400,
-      "Please provide valid scores (1-5) for all questions"
-    );
-  }
-  feedback.questions = questions;
-  feedback.attempted = true;
-  await feedback.save();
-  res
-    .status(200)
-    .json(new ApiResponse(200, feedback, "Feedback submitted successfully"));
 });
 
 export {

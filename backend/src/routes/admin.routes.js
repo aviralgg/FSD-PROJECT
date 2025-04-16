@@ -30,6 +30,7 @@ router.route("/deleteAdmin").delete(verifyAdmin, deleteLoggedInAdmin);
 router.route("/addStudent").post(verifyAdmin, addStudent);
 router.route("/deleteStudent").delete(verifyAdmin, deleteStudent);
 
+
 router
   .route("/addFacultyInfo")
   .post(verifyAdmin, upload.single("image"), addFacultyInfo);

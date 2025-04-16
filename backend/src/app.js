@@ -22,4 +22,7 @@ app.use("/api/v1/admin", adminRouter);
 import studentRouter from "./routes/student.routes.js";
 app.use("/api/v1/student", studentRouter);
 
+import { errorHandler } from "./middlewares/errorHandler.middleware.js";
+app.use(errorHandler);
+
 export { app };
